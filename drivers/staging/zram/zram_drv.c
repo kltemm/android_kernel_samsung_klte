@@ -29,7 +29,7 @@
 #include <linux/genhd.h>
 #include <linux/highmem.h>
 #include <linux/slab.h>
-#include <linux/lzo.h>
+#include <linux/lz4.h>
 #include <linux/string.h>
 #include <linux/vmalloc.h>
 #include <linux/ratelimit.h>
@@ -210,7 +210,7 @@ static struct zram_meta *zram_meta_alloc(u64 disksize)
 	if (!meta)
 		goto out;
 
-	meta->compress_workmem = kzalloc(LZO1X_MEM_COMPRESS, GFP_KERNEL);
+	meta->compress_workmem = kzalloc(LZ4_MEM_COMPRESS, GFP_KERNEL);
 	if (!meta->compress_workmem)
 		goto free_meta;
 
@@ -337,7 +337,7 @@ static int zram_decompress_page(struct zram *zram, char *mem, u32 index)
 	if (meta->table[index].size == PAGE_SIZE)
 		copy_page(mem, cmem);
 	else
-		ret = lzo1x_decompress_safe(cmem, meta->table[index].size,
+		ret = lz4_decompress_unknownoutputsize(cmem, meta->table[index].size,
 						mem, &clen);
 	zs_unmap_object(meta->mem_pool, handle);
 
@@ -457,7 +457,7 @@ static int zram_bvec_write(struct zram *zram, struct bio_vec *bvec, u32 index,
 			zram_test_flag(meta, index, ZRAM_ZERO)))
 		zram_free_page(zram, index);
 
-	ret = lzo1x_1_compress(uncmem, PAGE_SIZE, src, &clen,
+	ret = lz4_compress(uncmem, PAGE_SIZE, src, &clen,
 			       meta->compress_workmem);
 
 	if (!is_partial_io(bvec)) {
