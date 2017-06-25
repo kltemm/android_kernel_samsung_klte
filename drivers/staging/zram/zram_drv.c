@@ -210,7 +210,7 @@ static struct zram_meta *zram_meta_alloc(u64 disksize)
 	if (!meta)
 		goto out;
 
-	meta->compress_workmem = kzalloc(LZ4_MEM_COMPRESS, GFP_KERNEL);
+	meta->compress_workmem = kzalloc(LZ4HC_MEM_COMPRESS, GFP_KERNEL);
 	if (!meta->compress_workmem)
 		goto free_meta;
 
@@ -457,7 +457,7 @@ static int zram_bvec_write(struct zram *zram, struct bio_vec *bvec, u32 index,
 			zram_test_flag(meta, index, ZRAM_ZERO)))
 		zram_free_page(zram, index);
 
-	ret = lz4_compress(uncmem, PAGE_SIZE, src, &clen,
+	ret = lz4hc_compress(uncmem, PAGE_SIZE, src, &clen,
 			       meta->compress_workmem);
 
 	if (!is_partial_io(bvec)) {
